@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useState,
 } from 'react';
@@ -156,7 +157,7 @@ export const DiscoverDevicePage = () => {
   ] =
     useState('');
 
-  const handleDiscover =
+  const handleDiscover = useCallback(
     async () => {
       if (!homeId || !isOwner) {
         return;
@@ -183,12 +184,14 @@ export const DiscoverDevicePage = () => {
       } finally {
         setIsSearching(false);
       }
-    };
+    },
+    [homeId, isOwner],
+  );
   useEffect(() => {
     if (isOwner) {
       void handleDiscover();
     }
-  }, [homeId, isOwner]);
+  }, [handleDiscover, isOwner]);
 
   const handleSelect =
     async (

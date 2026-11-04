@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test:contracts": "node --experimental-strip-types --test test/shelly-pairing-contract.test.mjs",
+    "test:contracts": "node --experimental-strip-types test/shelly-pairing-contract.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

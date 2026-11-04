@@ -22,6 +22,18 @@ function figmaAssetResolver(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '')
   const backendUrl = env.VITE_BACKEND_URL || 'http://localhost:3000'
+  let apiOrigin: string | undefined
+
+  try {
+    const configuredApiUrl = new URL(env.VITE_API_URL)
+    if (configuredApiUrl.protocol === 'http:' || configuredApiUrl.protocol === 'https:') {
+      apiOrigin = configuredApiUrl.origin
+    }
+  } catch {
+    // Relative API URLs continue to use VITE_BACKEND_URL for the dev proxy.
+  }
+
+  const realtimeBackendUrl = env.VITE_REALTIME_BACKEND_URL || apiOrigin || backendUrl
 
   return {
     plugins: [
@@ -46,7 +58,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         '/socket.io': {
-          target: backendUrl,
+          target: realtimeBackendUrl,
           changeOrigin: true,
           ws: true,
         },

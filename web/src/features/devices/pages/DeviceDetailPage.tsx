@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   controlDevice,
+  deactivateDevice,
+  deleteDevice,
   getDevice,
   type Device,
 } from '../../../shared/api/devices.api';
@@ -34,6 +36,8 @@ export const DeviceDetailPage = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isControlling, setIsControlling] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [currentMembership, setCurrentMembership] =
     useState<HomeMember | null>(null);
@@ -198,6 +202,36 @@ export const DeviceDetailPage = () => {
       );
     } finally {
       setIsControlling(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!homeId || !device || !isOwner || isDeactivating) return;
+    if (!window.confirm(`¿Desactivar "${device.name}"? Podrás reactivarlo desde la lista de dispositivos inactivos.`)) return;
+    setIsDeactivating(true);
+    setError('');
+    try {
+      await deactivateDevice(homeId, device.id);
+      navigate(`/homes/${homeId}/devices`, { replace: true });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible desactivar el dispositivo.');
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!homeId || !device || !isOwner || isDeleting) return;
+    if (!window.confirm(`¿Eliminar lógicamente "${device.name}" del hogar? El dispositivo dejará de aparecer en las listas.`)) return;
+    setIsDeleting(true);
+    setError('');
+    try {
+      await deleteDevice(homeId, device.id);
+      navigate(`/homes/${homeId}/devices`, { replace: true });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible eliminar el dispositivo.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -419,6 +453,21 @@ export const DeviceDetailPage = () => {
                 Editar dispositivo
               </Button>
             )}
+          </section>
+        )}
+
+        {isOwner && (
+          <section className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/50 dark:bg-rose-950/20 sm:p-5" aria-labelledby="device-management-heading">
+            <h2 id="device-management-heading" className="text-sm font-semibold text-rose-800 dark:text-rose-200">Administración</h2>
+            <p className="mt-1 text-sm leading-6 text-rose-700/90 dark:text-rose-300/90">Desactivar conserva la posibilidad de reactivarlo. Eliminar aplica una baja lógica en el servidor y requiere confirmación.</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="secondary" className="min-h-11 w-full border-rose-200 text-rose-700 hover:bg-rose-100 dark:border-rose-900/70 dark:text-rose-300 dark:hover:bg-rose-950/40 sm:w-auto" disabled={isDeactivating || isDeleting} onClick={() => void handleDeactivate()}>
+              {isDeactivating ? 'Desactivando...' : 'Desactivar dispositivo'}
+            </Button>
+            <Button type="button" variant="secondary" className="min-h-11 w-full border-rose-300 text-rose-800 hover:bg-rose-100 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/40 sm:w-auto" disabled={isDeactivating || isDeleting} onClick={() => void handleDelete()}>
+              {isDeleting ? 'Eliminando...' : 'Eliminar del hogar'}
+            </Button>
+            </div>
           </section>
         )}
 

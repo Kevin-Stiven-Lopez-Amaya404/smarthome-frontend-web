@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../../../app/contexts/AuthContext';
+import { listDevices, type Device } from '../../../shared/api/devices.api';
 import {
+  getHomeMemberPermissions,
+  getMemberDevicePermissions,
   inviteMember,
   listHomes,
   listMembers,
   revokeMember,
+  updateHomeMemberPermissions,
+  updateMemberDevicePermissions,
   updateMemberRole,
+  type DevicePermissionOverrides,
+  type HomeMemberPermissions,
   type Home,
   type HomeMember,
 } from '../../../shared/api/homes.api';
@@ -45,6 +52,7 @@ export const AccessPage = () => {
   const [selectedHomeId, setSelectedHomeId] = useState('');
   const [members, setMembers] = useState<HomeMember[]>([]);
   const membersRequestId = useRef(0);
+  const permissionRequestId = useRef(0);
   const [isLoadingHomes, setIsLoadingHomes] = useState(true);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [homesLoadError, setHomesLoadError] = useState('');
@@ -54,6 +62,14 @@ export const AccessPage = () => {
   const [role, setRole] = useState<'MEMBER' | 'GUEST'>('MEMBER');
   const [isSaving, setIsSaving] = useState(false);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [permissionMemberId, setPermissionMemberId] = useState<string | null>(null);
+  const [permissionDevices, setPermissionDevices] = useState<Device[]>([]);
+  const [homePermissionsDraft, setHomePermissionsDraft] = useState<HomeMemberPermissions | null>(null);
+  const [devicePermissionsDraft, setDevicePermissionsDraft] = useState<Record<string, DevicePermissionOverrides>>({});
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
+  const [permissionSaveKey, setPermissionSaveKey] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState('');
+  const [permissionSuccess, setPermissionSuccess] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -183,6 +199,10 @@ export const AccessPage = () => {
 
     try {
       await updateMemberRole(selectedHomeId, member.id, nextRole);
+      permissionRequestId.current += 1;
+      setPermissionMemberId(null);
+      setHomePermissionsDraft(null);
+      setDevicePermissionsDraft({});
       setSuccess('El rol se actualizó correctamente.');
       await loadMembers(selectedHomeId);
     } catch (cause) {
@@ -204,12 +224,95 @@ export const AccessPage = () => {
 
     try {
       await revokeMember(selectedHomeId, member.id);
+      if (permissionMemberId === member.id) {
+        permissionRequestId.current += 1;
+        setPermissionMemberId(null);
+        setHomePermissionsDraft(null);
+        setDevicePermissionsDraft({});
+      }
       setMembers((current) => current.filter((item) => item.id !== member.id));
       setSuccess('El acceso se retiró correctamente.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No fue posible retirar el acceso.');
     } finally {
       setBusyMemberId(null);
+    }
+  };
+
+  const handlePermissionPanel = async (member: HomeMember, forceReload = false) => {
+    if (!selectedHomeId || !isOwner || member.role === 'OWNER' || member.status !== 'ACTIVE') return;
+    if (permissionMemberId === member.id && !forceReload) {
+      permissionRequestId.current += 1;
+      setPermissionMemberId(null);
+      return;
+    }
+
+    const homeId = selectedHomeId;
+    const requestId = ++permissionRequestId.current;
+    setPermissionMemberId(member.id);
+    setPermissionDevices([]);
+    setHomePermissionsDraft(null);
+    setDevicePermissionsDraft({});
+    setPermissionError('');
+    setPermissionSuccess('');
+    setIsLoadingPermissions(true);
+
+    try {
+      const [homePermissions, devices] = await Promise.all([
+        getHomeMemberPermissions(homeId, member.id),
+        listDevices(homeId),
+      ]);
+      const deviceEntries = await Promise.all(devices.map(async (device) => [
+        device.id,
+        await getMemberDevicePermissions(homeId, member.id, device.id),
+      ] as const));
+
+      if (requestId !== permissionRequestId.current || homeId !== selectedHomeId) return;
+      setHomePermissionsDraft(homePermissions);
+      setPermissionDevices(devices);
+      setDevicePermissionsDraft(Object.fromEntries(deviceEntries));
+    } catch (cause) {
+      if (requestId === permissionRequestId.current) {
+        setPermissionError(cause instanceof Error ? cause.message : 'No fue posible cargar los permisos de esta persona.');
+      }
+    } finally {
+      if (requestId === permissionRequestId.current) setIsLoadingPermissions(false);
+    }
+  };
+
+  const handleSaveHomePermissions = async (member: HomeMember) => {
+    if (!selectedHomeId || !homePermissionsDraft || !isOwner) return;
+    const key = `home:${member.id}`;
+    setPermissionSaveKey(key);
+    setPermissionError('');
+    setPermissionSuccess('');
+    try {
+      const saved = await updateHomeMemberPermissions(selectedHomeId, member.id, homePermissionsDraft);
+      setHomePermissionsDraft(saved);
+      setPermissionSuccess('Los permisos generales del hogar se actualizaron.');
+    } catch (cause) {
+      setPermissionError(cause instanceof Error ? cause.message : 'No fue posible guardar los permisos generales.');
+    } finally {
+      setPermissionSaveKey(null);
+    }
+  };
+
+  const handleSaveDevicePermissions = async (member: HomeMember, deviceId: string) => {
+    if (!selectedHomeId || !isOwner) return;
+    const permissions = devicePermissionsDraft[deviceId];
+    if (!permissions) return;
+    const key = `device:${deviceId}`;
+    setPermissionSaveKey(key);
+    setPermissionError('');
+    setPermissionSuccess('');
+    try {
+      const saved = await updateMemberDevicePermissions(selectedHomeId, member.id, deviceId, permissions);
+      setDevicePermissionsDraft((current) => ({ ...current, [deviceId]: saved }));
+      setPermissionSuccess('La excepción de este dispositivo se actualizó.');
+    } catch (cause) {
+      setPermissionError(cause instanceof Error ? cause.message : 'No fue posible guardar los permisos del dispositivo.');
+    } finally {
+      setPermissionSaveKey(null);
     }
   };
 
@@ -288,6 +391,10 @@ export const AccessPage = () => {
                     id="access-home-select"
                     value={selectedHomeId}
                     onChange={(event) => {
+                      permissionRequestId.current += 1;
+                      setPermissionMemberId(null);
+                      setHomePermissionsDraft(null);
+                      setDevicePermissionsDraft({});
                       setSelectedHomeId(event.target.value);
                       localStorage.setItem('activeHomeId', event.target.value);
                       setSuccess('');
@@ -354,21 +461,22 @@ export const AccessPage = () => {
             ) : (
               <ul className="space-y-3">
                 {visibleMembers.map((member) => (
-                  <li key={member.id} className="flex flex-col gap-3 rounded-xl border border-[#e6ebf2] bg-[#f8fafc] p-4 transition-[border-color,background-color,box-shadow] duration-200 hover:border-[#c9d9ef] hover:bg-[#f5f9ff] motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-slate-600 dark:hover:bg-slate-800/70 sm:flex-row sm:items-center">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#d9f4e1] text-lg font-semibold text-[#258348] dark:bg-emerald-950/50 dark:text-emerald-300">
-                      <PersonIcon />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#0f172a] dark:text-white">{roleLabel(member.role)}</p>
-                      <p className="mt-0.5 text-xs text-[#64748b] dark:text-slate-400">{statusLabel(member.status)}</p>
-                    </div>
-                    {canManageMember(member) && (
-                      <div className="flex items-center gap-2">
+                  <li key={member.id} className="overflow-hidden rounded-xl border border-[#e6ebf2] bg-[#f8fafc] transition-[border-color,background-color,box-shadow] duration-200 hover:border-[#c9d9ef] hover:bg-[#f5f9ff] motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-slate-600 dark:hover:bg-slate-800/70">
+                    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#d9f4e1] text-lg font-semibold text-[#258348] dark:bg-emerald-950/50 dark:text-emerald-300">
+                        <PersonIcon />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#0f172a] dark:text-white">{roleLabel(member.role)}</p>
+                        <p className="mt-0.5 text-xs text-[#64748b] dark:text-slate-400">{statusLabel(member.status)}</p>
+                      </div>
+                      {canManageMember(member) && (
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         <label className="sr-only" htmlFor={`member-role-${member.id}`}>Rol del acceso</label>
                         <select
                           id={`member-role-${member.id}`}
                           value={member.role === 'GUEST' ? 'GUEST' : 'MEMBER'}
-                          disabled={busyMemberId === member.id}
+                          disabled={busyMemberId === member.id || permissionSaveKey !== null}
                           onChange={(event) => {
                             const nextRole = event.target.value;
                             if (nextRole === 'MEMBER' || nextRole === 'GUEST') {
@@ -382,7 +490,7 @@ export const AccessPage = () => {
                         </select>
                         <button
                           type="button"
-                          disabled={busyMemberId === member.id}
+                          disabled={busyMemberId === member.id || permissionSaveKey !== null}
                           onClick={() => void handleRevoke(member)}
                           aria-label={`Retirar acceso de ${roleLabel(member.role).toLowerCase()}`}
                           className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-600 transition-colors duration-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 focus-visible:ring-offset-2 motion-reduce:transition-none dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/30"
@@ -391,12 +499,110 @@ export const AccessPage = () => {
                             <path d="M3 6h18m-2 0-.9 14H5.9L5 6m3 0V4h8v2m-7 4v6m4-6v6" />
                           </svg>
                         </button>
+                        {member.status === 'ACTIVE' && (
+                          <button
+                            type="button"
+                            aria-expanded={permissionMemberId === member.id}
+                            aria-controls={`member-permissions-${member.id}`}
+                            disabled={busyMemberId === member.id || permissionSaveKey !== null}
+                            onClick={() => void handlePermissionPanel(member)}
+                            className="min-h-11 rounded-lg border border-[#cfe0f7] bg-white px-3 text-sm font-semibold text-[#1764b0] transition-colors duration-200 hover:bg-[#eff6ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1677f2]/30 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none dark:border-slate-600 dark:bg-slate-800 dark:text-blue-200 dark:hover:bg-slate-700"
+                          >
+                            {permissionMemberId === member.id ? 'Ocultar permisos' : 'Permisos'}
+                          </button>
+                        )}
                       </div>
-                    )}
-                    {!canManageMember(member) && (
-                      <span className="self-start rounded-full bg-[#eaf2ff] px-3 py-1 text-xs font-semibold text-[#1764b0] dark:bg-[#172b49] dark:text-[#9cc4ff] sm:self-center">
-                        {roleLabel(member.role)}
-                      </span>
+                      )}
+                      {!canManageMember(member) && (
+                        <span className="self-start rounded-full bg-[#eaf2ff] px-3 py-1 text-xs font-semibold text-[#1764b0] dark:bg-[#172b49] dark:text-[#9cc4ff] sm:self-center">
+                          {roleLabel(member.role)}
+                        </span>
+                      )}
+                    </div>
+
+                    {permissionMemberId === member.id && (
+                      <section id={`member-permissions-${member.id}`} aria-labelledby={`member-permissions-heading-${member.id}`} className="border-t border-[#e2e8f0] bg-white p-4 dark:border-slate-700 dark:bg-[#151824] sm:p-5">
+                        <div className="mb-4">
+                          <h3 id={`member-permissions-heading-${member.id}`} className="text-base font-semibold text-[#0f172a] dark:text-white">Permisos de {roleLabel(member.role).toLowerCase()}</h3>
+                          <p className="mt-1 text-sm leading-5 text-[#64748b] dark:text-slate-400">La excepción de un dispositivo reemplaza el permiso general solo para ese equipo. Los invitados siempre reciben consumo agregado del hogar.</p>
+                        </div>
+                        {permissionError && <div role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"><p>{permissionError}</p>{!homePermissionsDraft && <button type="button" onClick={() => void handlePermissionPanel(member, true)} className="mt-2 min-h-10 font-semibold underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">Reintentar</button>}</div>}
+                        {permissionSuccess && <p role="status" className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">{permissionSuccess}</p>}
+                        {isLoadingPermissions ? (
+                          <p role="status" className="py-5 text-sm text-[#64748b] dark:text-slate-400">Cargando permisos y dispositivos...</p>
+                        ) : homePermissionsDraft ? (
+                          <div className="space-y-5">
+                            <div className="rounded-xl border border-[#e6ebf2] p-4 dark:border-slate-700">
+                              <h4 className="text-sm font-semibold text-[#0f172a] dark:text-white">Permisos generales del hogar</h4>
+                              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                {([
+                                  ['canViewDevices', 'Consultar dispositivos'],
+                                  ['canViewConsumption', 'Consultar consumo'],
+                                  ['canControlDevices', 'Controlar dispositivos'],
+                                ] as const).map(([key, label]) => (
+                                  <label key={key} className="flex min-h-11 items-center gap-2 rounded-lg bg-[#f8fafc] px-3 text-sm text-[#334155] dark:bg-slate-900 dark:text-slate-200">
+                                    <input type="checkbox" checked={homePermissionsDraft[key]} disabled={permissionSaveKey !== null} onChange={(event) => setHomePermissionsDraft((current) => current ? { ...current, [key]: event.target.checked } : current)} className="h-4 w-4 accent-[#1677f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1677f2]/50 disabled:opacity-60" />
+                                    {label}
+                                  </label>
+                                ))}
+                              </div>
+                              <button type="button" disabled={permissionSaveKey !== null} onClick={() => void handleSaveHomePermissions(member)} className="mt-3 min-h-11 rounded-lg bg-[#0d6efd] px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#0b5ed7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1677f2]/40 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none">
+                                {permissionSaveKey === `home:${member.id}` ? 'Guardando...' : 'Guardar permisos generales'}
+                              </button>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-semibold text-[#0f172a] dark:text-white">Excepciones por dispositivo</h4>
+                              <p className="mt-1 text-xs leading-5 text-[#64748b] dark:text-slate-400">“Heredar” usa el permiso general. Guardar los tres campos como heredados elimina las excepciones de ese dispositivo.</p>
+                              {permissionDevices.length === 0 ? (
+                                <p className="mt-3 rounded-lg border border-dashed border-[#d8e0eb] p-4 text-sm text-[#64748b] dark:border-slate-700 dark:text-slate-400">No hay dispositivos activos para configurar.</p>
+                              ) : (
+                                <ul className="mt-3 space-y-3">
+                                  {permissionDevices.map((device) => {
+                                    const overrides = devicePermissionsDraft[device.id];
+                                    if (!overrides) return null;
+                                    const fields = [
+                                      ['canViewDevice', 'Consultar dispositivo'],
+                                      ['canViewConsumption', 'Consultar consumo'],
+                                      ['canControlDevice', 'Controlar dispositivo'],
+                                    ] as const;
+                                    return (
+                                      <li key={device.id} className="rounded-xl border border-[#e6ebf2] p-4 dark:border-slate-700">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                          <p className="min-w-0 break-words text-sm font-semibold text-[#0f172a] dark:text-white">{device.name}</p>
+                                          <button type="button" disabled={permissionSaveKey !== null} onClick={() => void handleSaveDevicePermissions(member, device.id)} className="min-h-10 rounded-lg border border-[#cfe0f7] px-3 text-xs font-semibold text-[#1764b0] transition-colors duration-200 hover:bg-[#eff6ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1677f2]/30 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none dark:border-slate-600 dark:text-blue-200 dark:hover:bg-slate-800">
+                                            {permissionSaveKey === `device:${device.id}` ? 'Guardando...' : 'Guardar excepción'}
+                                          </button>
+                                        </div>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                          {fields.map(([key, label]) => (
+                                            <label key={key} className="block text-xs font-medium text-[#64748b] dark:text-slate-400">
+                                              {label}
+                                              <select disabled={permissionSaveKey !== null} value={overrides[key] === null ? 'inherit' : overrides[key] ? 'allow' : 'deny'} onChange={(event) => {
+                                                const value = event.target.value;
+                                                setDevicePermissionsDraft((current) => ({
+                                                  ...current,
+                                                  [device.id]: { ...current[device.id], [key]: value === 'inherit' ? null : value === 'allow' },
+                                                }));
+                                              }} className="mt-1.5 h-10 w-full rounded-lg border border-[#dce4ef] bg-white px-2 text-sm text-[#334155] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1677f2] focus:ring-2 focus:ring-[#1677f2]/15 motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="inherit">Heredar</option>
+                                                <option value="allow">Permitir</option>
+                                                <option value="deny">Denegar</option>
+                                              </select>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        ) : permissionError ? null : (
+                          <p className="text-sm text-[#64748b] dark:text-slate-400">No se encontraron permisos para esta persona.</p>
+                        )}
+                      </section>
                     )}
                   </li>
                 ))}

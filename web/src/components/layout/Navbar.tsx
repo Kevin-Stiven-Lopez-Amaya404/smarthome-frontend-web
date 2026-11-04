@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import { getRealtimeSocket } from '../../shared/realtime/realtime-client';
 import { getUnreadNotificationsCount } from '../../shared/api/notifications.api';
 import { useTheme } from '../../app/contexts/ThemeContext';
@@ -111,9 +123,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
             aria-controls="smarthome-navigation"
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4ebf5] bg-white text-[#50658c] transition-colors duration-150 hover:bg-[#f5f8fd] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 lg:hidden"
           >
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <MenuOutlinedIcon aria-hidden="true" className="h-5 w-5" />
           </button>
 
         </div>
@@ -126,14 +136,9 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e7edf5] bg-white text-[#17264d] transition-colors duration-150 hover:border-[#cbdcf5] hover:bg-[#f1f6ff] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:border-slate-700 dark:bg-[#172236] dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {isDark ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="12" cy="12" r="4" />
-                <path strokeLinecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
-              </svg>
+              <LightModeOutlinedIcon aria-hidden="true" className="h-5 w-5" />
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z" />
-              </svg>
+              <DarkModeOutlinedIcon aria-hidden="true" className="h-5 w-5" />
             )}
           </button>
 
@@ -143,9 +148,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
             className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[#e7edf5] bg-white text-[#17264d] transition-colors duration-150 hover:border-[#cbdcf5] hover:bg-[#f1f6ff] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:border-slate-700 dark:bg-[#172236] dark:text-slate-200 dark:hover:bg-slate-800"
             aria-label={`${t('nav.notifications')}${unreadCount > 0 ? `, ${unreadCount} sin leer` : ''}`}
           >
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
-            </svg>
+            <NotificationsNoneOutlinedIcon aria-hidden="true" className="h-5 w-5" />
             {unreadCount > 0 && (
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-red-500 dark:border-slate-900" />
             )}
@@ -165,9 +168,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                 {initials || 'U'}
               </span>
               <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{displayName}</span>
-              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className={`hidden h-4 w-4 text-[#50658c] transition-transform motion-reduce:transition-none sm:block ${isProfileMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-              </svg>
+              <ExpandMoreOutlinedIcon aria-hidden="true" className={`hidden h-5 w-5 text-[#50658c] transition-transform motion-reduce:transition-none sm:block ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isProfileMenuOpen && (
@@ -212,9 +213,9 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                 <p role="none" className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8] dark:text-slate-500">Tu Smart Home</p>
 
                 {([
-                  { label: t('nav.homes'), path: '/homes', icon: 'home' },
-                  { label: t('nav.access'), path: '/access', icon: 'access' },
-                  { label: t('notifications.invitations'), path: '/notifications/invitations', icon: 'invitation' },
+                  { label: t('nav.homes'), path: '/homes', icon: <HomeOutlinedIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" /> },
+                  { label: t('nav.access'), path: '/access', icon: <PeopleAltOutlinedIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" /> },
+                  { label: t('notifications.invitations'), path: '/notifications/invitations', icon: <MailOutlineIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" /> },
                 ] as const).map((item) => (
                   <button
                     key={item.path}
@@ -227,19 +228,15 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                     }}
                     className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-[#334155] transition-colors hover:bg-[#f3f6fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      {item.icon === 'home' && <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>}
-                      {item.icon === 'access' && <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></>}
-                      {item.icon === 'invitation' && <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>}
-                    </svg>
+                    {item.icon}
                     <span>{item.label}</span>
                   </button>
                 ))}
 
                 <p role="none" className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8] dark:text-slate-500">Mi cuenta</p>
                 {([
-                  { label: t('nav.profile'), path: '/profile', icon: 'user' },
-                  { label: t('nav.settings'), path: '/profile#profile-settings', icon: 'settings' },
+                  { label: t('nav.profile'), path: '/profile', icon: <PersonOutlineIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" /> },
+                  { label: t('nav.settings'), path: '/profile#profile-settings', icon: <SettingsOutlinedIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" /> },
                 ] as const).map((item) => (
                   <button
                     key={item.path}
@@ -252,10 +249,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                     }}
                     className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-[#334155] transition-colors hover:bg-[#f3f6fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      {item.icon === 'user' && <><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></>}
-                      {item.icon === 'settings' && <><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V4a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2.9Z" /></>}
-                    </svg>
+                    {item.icon}
                     <span>{item.label}</span>
                   </button>
                 ))}
@@ -271,9 +265,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                   }}
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-[#334155] transition-colors hover:bg-[#f3f6fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0877f9]/30 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="9" /><path d="M9.6 9a2.5 2.5 0 1 1 4.2 1.8c-.9.8-1.8 1.2-1.8 2.7m0 3h.01" />
-                  </svg>
+                  <HelpOutlineIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#687a95] dark:text-slate-400" />
                   Centro de ayuda
                 </button>
 
@@ -288,10 +280,7 @@ export const Navbar = ({ onMenuClick, isNavigationOpen, menuButtonRef }: NavbarP
                   }}
                   className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 dark:text-red-400 dark:hover:bg-red-950/30"
                 >
-                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 17l5-5-5-5m5 5H3" />
-                    <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
-                  </svg>
+                  <LogoutOutlinedIcon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
                   <span>{t('auth.logout')}</span>
                 </button>
               </div>

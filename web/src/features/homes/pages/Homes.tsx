@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import LoginIcon from '@mui/icons-material/Login';
+import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   createHome,
   deleteHome,
+  leaveHome,
   listHomes,
   listMembers,
   updateHome,
@@ -25,6 +26,7 @@ export const Homes = () => {
 
   const [homes, setHomes] = useState<Home[]>([]);
   const [ownerHomeIds, setOwnerHomeIds] = useState<Set<string>>(new Set());
+  const [activeMembershipHomeIds, setActiveMembershipHomeIds] = useState<Set<string>>(new Set());
   const homesRequestId = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,6 +38,7 @@ export const Homes = () => {
   const [editingHomeId, setEditingHomeId] = useState<string | null>(null);
   const [editingHomeName, setEditingHomeName] = useState('');
   const [deletingHomeId, setDeletingHomeId] = useState<string | null>(null);
+  const [leavingHomeId, setLeavingHomeId] = useState<string | null>(null);
 
   const loadHomes = useCallback(async () => {
     const requestId = ++homesRequestId.current;
@@ -43,6 +46,7 @@ export const Homes = () => {
     setIsLoading(true);
     setError('');
     setOwnerHomeIds(new Set());
+    setActiveMembershipHomeIds(new Set());
 
     try {
       const response = await listHomes();
@@ -57,6 +61,7 @@ export const Homes = () => {
             return {
               homeId: home.id,
               isOwner: false,
+              isActiveMember: false,
               verificationFailed: false,
             };
           }
@@ -73,12 +78,14 @@ export const Homes = () => {
             return {
               homeId: home.id,
               isOwner: membership?.role === 'OWNER',
+              isActiveMember: Boolean(membership),
               verificationFailed: false,
             };
           } catch {
             return {
               homeId: home.id,
               isOwner: false,
+              isActiveMember: false,
               verificationFailed: true,
             };
           }
@@ -94,6 +101,9 @@ export const Homes = () => {
             .map((result) => result.homeId),
         ),
       );
+      setActiveMembershipHomeIds(
+        new Set(membershipChecks.filter((result) => result.isActiveMember).map((result) => result.homeId)),
+      );
 
       if (membershipChecks.some((result) => result.verificationFailed)) {
         setError(
@@ -105,6 +115,7 @@ export const Homes = () => {
 
       setHomes([]);
       setOwnerHomeIds(new Set());
+      setActiveMembershipHomeIds(new Set());
       setError(
         cause instanceof Error
           ? cause.message
@@ -236,6 +247,34 @@ export const Homes = () => {
       );
     } finally {
       setDeletingHomeId(null);
+    }
+  };
+
+  const handleLeaveHome = async (home: Home) => {
+    if (!activeMembershipHomeIds.has(home.id) || isHomeOwner(home.id)) return;
+
+    const confirmed = window.confirm(`¿Quieres salir de "${home.name}"? Perderás el acceso a este hogar.`);
+    if (!confirmed) return;
+
+    setLeavingHomeId(home.id);
+    setError('');
+    try {
+      await leaveHome(home.id);
+      const remainingHomes = homes.filter((item) => item.id !== home.id);
+      setHomes(remainingHomes);
+      setActiveMembershipHomeIds((current) => {
+        const next = new Set(current);
+        next.delete(home.id);
+        return next;
+      });
+      if (localStorage.getItem('activeHomeId') === home.id) {
+        if (remainingHomes.length > 0) localStorage.setItem('activeHomeId', remainingHomes[0].id);
+        else localStorage.removeItem('activeHomeId');
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible salir del hogar.');
+    } finally {
+      setLeavingHomeId(null);
     }
   };
 
@@ -412,12 +451,12 @@ export const Homes = () => {
                           type="button"
                           variant="primary"
                           className="flex min-h-[50px] w-full items-center justify-start rounded-full border border-transparent bg-[#1866C1] px-4 py-2 text-left text-[15px] font-semibold text-white shadow-none transition-colors duration-200 ease-out hover:bg-[#165bb0] focus-visible:ring-2 focus-visible:ring-[#1683ec]/40 focus-visible:ring-offset-2 motion-reduce:transition-none"
-                          disabled={deletingHomeId !== null}
+                          disabled={deletingHomeId !== null || leavingHomeId !== null}
                           onClick={() => enterHome(home.id)}
                         >
                           <span className="grid w-full grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3">
                             <span className="flex h-8 w-9 shrink-0 items-center justify-center">
-                              <LoginIcon aria-hidden="true" className="h-5 w-5" />
+                              <LoginOutlinedIcon aria-hidden="true" className="h-5 w-5" />
                             </span>
                             <span className="min-w-0">Entrar al hogar</span>
                             <ChevronRightIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
@@ -460,6 +499,25 @@ export const Homes = () => {
                               <span className="min-w-0">
                                 {deletingHomeId === home.id ? 'Eliminando...' : 'Eliminar hogar'}
                               </span>
+                              <ChevronRightIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-[#d8868d] dark:text-red-300" />
+                            </span>
+                          </Button>
+                        )}
+                        {activeMembershipHomeIds.has(home.id) && !isHomeOwner(home.id) && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="flex min-h-[50px] w-full items-center justify-start rounded-full border border-[#f2dfe2] bg-[#fff6f7] px-4 py-2 text-left text-[15px] font-semibold text-[#b93842] transition-[background-color,border-color] duration-200 ease-out hover:border-[#ebd2d6] hover:bg-[#fff1f3] focus-visible:ring-2 focus-visible:ring-rose-300/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300 dark:hover:border-red-900 dark:hover:bg-red-950/35"
+                            disabled={leavingHomeId !== null || deletingHomeId !== null}
+                            onClick={() => void handleLeaveHome(home)}
+                          >
+                            <span className="grid w-full grid-cols-[36px_minmax(0,1fr)_20px] items-center gap-3">
+                              <span className="flex h-8 w-9 shrink-0 items-center justify-center">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fbe8ea] text-[#b93842] dark:bg-red-950/60 dark:text-red-300">
+                                  <LoginOutlinedIcon aria-hidden="true" className="h-4 w-4 rotate-180" />
+                                </span>
+                              </span>
+                              <span className="min-w-0">{leavingHomeId === home.id ? 'Saliendo...' : 'Salir del hogar'}</span>
                               <ChevronRightIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-[#d8868d] dark:text-red-300" />
                             </span>
                           </Button>

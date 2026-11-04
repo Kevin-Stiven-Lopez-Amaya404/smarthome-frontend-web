@@ -2,6 +2,7 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useState,
   useEffect,
   type ReactNode,
@@ -22,10 +23,14 @@ const getInitialTheme = (): Theme => {
     return 'system';
   }
 
-  const stored = window.localStorage.getItem('theme');
+  try {
+    const stored = window.localStorage.getItem('theme');
 
-  if (stored === 'light' || stored === 'dark' || stored === 'system') {
-    return stored;
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      return stored;
+    }
+  } catch {
+    // The system preference remains available when browser storage is blocked.
   }
 
   return 'system';
@@ -52,7 +57,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     };
 
     applyTheme();
-    window.localStorage.setItem('theme', theme);
+    try {
+      window.localStorage.setItem('theme', theme);
+    } catch {
+      // Theme changes still apply in memory when browser storage is unavailable.
+    }
 
     if (theme === 'system') {
       media.addEventListener('change', applyTheme);
@@ -62,13 +71,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return undefined;
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-  };
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
