@@ -118,7 +118,37 @@
     "alertThreshold": "Seuil d'alerte",
     "save": "Enregistrer",
     "cancel": "Annuler",
-    "description": "Ajustes de la cuenta y preferencias"
+    "description": "Personnalisez votre expérience Smart Home et gérez votre compte.",
+    "profile": "Profil",
+    "appearance": "Apparence",
+    "appearanceDescription": "Choisissez le thème visuel de l’application.",
+    "system": "Système",
+    "securityDescription": "Protégez votre compte et gérez les accès.",
+    "changePassword": "Modifier le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmer le nouveau mot de passe",
+    "passwordRules": "Utilisez au moins 8 caractères, une majuscule, un chiffre et un symbole. Le changement fermera vos sessions.",
+    "updating": "Mise à jour…",
+    "logoutAll": "Déconnexion",
+    "logoutAllDescription": "Déconnectez-vous de tous vos appareils.",
+    "informationDescription": "Détails de l’application.",
+    "installedVersion": "Version installée",
+    "support": "Assistance",
+    "contact": "Contacter",
+    "tabs": {
+      "label": "Sections des paramètres",
+      "general": "Général",
+      "security": "Sécurité",
+      "information": "Informations"
+    },
+    "errors": {
+      "applyLanguage": "La langue sélectionnée n’a pas pu être appliquée.",
+      "loadPreferences": "Impossible de charger vos préférences depuis le serveur.",
+      "saveTheme": "Le thème a été appliqué sur cet appareil, mais n’a pas pu être enregistré sur votre compte.",
+      "saveLanguage": "La langue a été appliquée sur cet appareil, mais n’a pas pu être enregistrée sur votre compte.",
+      "changePassword": "Impossible de modifier le mot de passe. Veuillez réessayer."
+    }
   },
   "profile": {
     "title": "Mon profil",

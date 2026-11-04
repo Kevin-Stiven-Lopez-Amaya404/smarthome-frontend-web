@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getHome, type Home } from '../../../shared/api/homes.api';
 import {
@@ -11,6 +11,7 @@ import { IsometricHomeScene } from '../../../components/ui/IsometricHomeScene';
 export const HomeDashboardPage = () => {
   const navigate = useNavigate();
   const { homeId } = useParams<{ homeId: string }>();
+  const requestId = useRef(0);
 
   const [home, setHome] = useState<Home | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -18,10 +19,15 @@ export const HomeDashboardPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    const isCurrentRequest = () => currentRequestId === requestId.current;
+
     const loadHomeDashboard = async () => {
       if (!homeId) {
-        setError('No se encontró el hogar seleccionado.');
-        setIsLoading(false);
+        if (isCurrentRequest()) {
+          setError('No se encontró el hogar seleccionado.');
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -34,22 +40,33 @@ export const HomeDashboardPage = () => {
           listDevices(homeId),
         ]);
 
+        if (!isCurrentRequest()) return;
+
         setHome(homeResponse);
         setDevices(devicesResponse);
 
-        localStorage.setItem('activeHomeId', homeId);
+        try {
+          localStorage.setItem('activeHomeId', homeId);
+        } catch {
+          // The route remains authoritative when browser storage is unavailable.
+        }
       } catch (cause) {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'No fue posible cargar la información del hogar.',
-        );
+        if (isCurrentRequest()) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'No fue posible cargar la información del hogar.',
+          );
+        }
       } finally {
-        setIsLoading(false);
+        if (isCurrentRequest()) setIsLoading(false);
       }
     };
 
     void loadHomeDashboard();
+    return () => {
+      requestId.current += 1;
+    };
   }, [homeId]);
 
   const onlineDevices = devices.filter(
@@ -195,7 +212,7 @@ export const HomeDashboardPage = () => {
             {devices.slice(0, 6).map((device) => (
               <Card
                 key={device.id}
-                className="rounded-2xl border border-slate-200/80 shadow-sm shadow-slate-900/5 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none dark:border-gray-800 dark:hover:border-blue-900"
+                className="rounded-2xl border border-slate-200/80 shadow-sm shadow-slate-900/5 transition-[border-color,box-shadow] duration-200 hover:border-blue-200 hover:shadow-md motion-reduce:transition-none dark:border-gray-800 dark:hover:border-blue-900"
               >
                 <CardContent className="p-5">
 
@@ -249,7 +266,7 @@ export const HomeDashboardPage = () => {
           <button
             type="button"
             onClick={() => navigate(`/homes/${home.id}/devices`)}
-            className="min-h-28 rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm shadow-slate-900/5 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1866C1] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none dark:border-gray-800 dark:bg-[#151824] dark:hover:border-blue-900 dark:focus-visible:ring-offset-gray-950"
+            className="min-h-28 rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm shadow-slate-900/5 transition-[border-color,box-shadow] duration-200 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1866C1] focus-visible:ring-offset-2 motion-reduce:transition-none dark:border-gray-800 dark:bg-[#151824] dark:hover:border-blue-900 dark:focus-visible:ring-offset-gray-950"
           >
             <p className="font-semibold text-[#1b254b] dark:text-white">
               Dispositivos

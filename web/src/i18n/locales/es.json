@@ -118,7 +118,37 @@
     "alertThreshold": "Umbral de Alerta",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "description": "Ajustes de la cuenta y preferencias"
+    "description": "Personaliza tu experiencia en Smart Home y gestiona tu cuenta.",
+    "profile": "Perfil",
+    "appearance": "Apariencia",
+    "appearanceDescription": "Elige el tema visual de la aplicación.",
+    "system": "Sistema",
+    "securityDescription": "Protege tu cuenta y gestiona el acceso.",
+    "changePassword": "Cambiar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "confirmNewPassword": "Confirmar nueva contraseña",
+    "passwordRules": "Usa al menos 8 caracteres, una mayúscula, un número y un símbolo. Al cambiarla, se cerrarán tus sesiones.",
+    "updating": "Actualizando…",
+    "logoutAll": "Cerrar sesión",
+    "logoutAllDescription": "Cierra tu sesión en todos los dispositivos.",
+    "informationDescription": "Detalles de la aplicación.",
+    "installedVersion": "Versión instalada",
+    "support": "Soporte",
+    "contact": "Contactar",
+    "tabs": {
+      "label": "Secciones de configuración",
+      "general": "General",
+      "security": "Seguridad",
+      "information": "Información"
+    },
+    "errors": {
+      "applyLanguage": "No se pudo aplicar el idioma seleccionado.",
+      "loadPreferences": "No se pudieron cargar tus preferencias del servidor.",
+      "saveTheme": "El tema se aplicó en este dispositivo, pero no se pudo guardar en tu cuenta.",
+      "saveLanguage": "El idioma se aplicó en este dispositivo, pero no se pudo guardar en tu cuenta.",
+      "changePassword": "No fue posible cambiar la contraseña. Inténtalo de nuevo."
+    }
   },
   "profile": {
     "title": "Mi Perfil",

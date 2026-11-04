@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   getHomeConsumptionSummary,
   getHomeDailyConsumption,
   getDeviceConsumptionSummary,
+  getDeviceDailyConsumption,
+  listDeviceConsumption,
   listHomeConsumption,
   type ConsumptionReading,
   type DeviceConsumptionSummary,
+  type DeviceDailyConsumption,
   type HomeConsumptionSummary,
   type HomeDailyConsumption,
 } from '../../../shared/api/consumption.api';
@@ -40,6 +43,7 @@ import {
   Card,
   CardContent,
 } from '../../../components/ui/Card';
+import { HomeEnergySection } from '../HomeEnergySection';
 
 import {
   getRealtimeSocket,
@@ -239,6 +243,8 @@ export const Consumption = () => {
 
   const [home, setHome] = useState<Home | null>(null);
   const [isGuest, setIsGuest] = useState(false);
+  const [isHomeOwner, setIsHomeOwner] = useState(false);
+  const [activeEnergyView, setActiveEnergyView] = useState<'consumption' | 'planning'>('consumption');
 
   const [period, setPeriod] =
     useState<ConsumptionPeriod>('day');
@@ -258,11 +264,14 @@ export const Consumption = () => {
   const [deviceConsumptionCards, setDeviceConsumptionCards] =
     useState<DeviceConsumptionCard[]>([]);
 
+  const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] =
     useState(true);
 
   const [error, setError] =
     useState('');
+  const consumptionRequestId = useRef(0);
 
   useEffect(() => {
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -281,11 +290,19 @@ export const Consumption = () => {
     () => getDateRange(period, selectedDate),
     [period, selectedDate],
   );
+  const energyMonth = `${selectedDate.getFullYear()}-${String(
+    selectedDate.getMonth() + 1,
+  ).padStart(2, '0')}`;
 
   const loadConsumption = useCallback(async () => {
+    const currentRequestId = ++consumptionRequestId.current;
+    const isCurrentRequest = () => currentRequestId === consumptionRequestId.current;
+
     if (!homeId) {
-      setError('No se encontró el hogar seleccionado.');
-      setIsLoading(false);
+      if (isCurrentRequest()) {
+        setError('No se encontró el hogar seleccionado.');
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -296,13 +313,17 @@ export const Consumption = () => {
     setDailyData([]);
     setReadings([]);
     setDeviceConsumptionCards([]);
+    setExpandedDeviceId(null);
     setIsGuest(false);
+    setIsHomeOwner(false);
 
     try {
       const [homeResponse, membersResponse] = await Promise.all([
         getHome(homeId),
         listMembers(homeId),
       ]);
+
+      if (!isCurrentRequest()) return;
 
       const membership = membersResponse.find(
         (member) =>
@@ -320,11 +341,18 @@ export const Consumption = () => {
         to: dateRange.to,
       });
 
+      if (!isCurrentRequest()) return;
+
       setHome(homeResponse);
       setSummary(summaryResponse);
       setIsGuest(membership.role === 'GUEST');
+      setIsHomeOwner(membership.role === 'OWNER');
 
-      localStorage.setItem('activeHomeId', homeId);
+      try {
+        localStorage.setItem('activeHomeId', homeId);
+      } catch {
+        // The route remains authoritative when browser storage is unavailable.
+      }
 
       if (membership.role === 'GUEST') {
         setDailyData([]);
@@ -383,22 +411,29 @@ export const Consumption = () => {
         }),
       );
 
+      if (!isCurrentRequest()) return;
+
       setDailyData(dailyResponse);
       setReadings(readingsResponse);
       setDeviceConsumptionCards(deviceCards);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'No fue posible cargar el consumo.',
-      );
+      if (isCurrentRequest()) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'No fue posible cargar el consumo.',
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (isCurrentRequest()) setIsLoading(false);
     }
   }, [homeId, dateRange.from, dateRange.to, user?.id]);
 
   useEffect(() => {
     void loadConsumption();
+    return () => {
+      consumptionRequestId.current += 1;
+    };
   }, [loadConsumption]);
     useEffect(() => {
       if (!homeId || isGuest) {
@@ -621,6 +656,32 @@ export const Consumption = () => {
             Monitorea el consumo energético de tu hogar.
           </p>
         </header>
+
+        {!isGuest && homeId && (
+          <div role="tablist" aria-label="Secciones de energía" className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm shadow-slate-900/5 dark:border-gray-800 dark:bg-[#151824]">
+            {([
+              ['consumption', 'Consumo'],
+              ['planning', 'Planificación'],
+            ] as const).map(([view, label]) => (
+              <button
+                key={view}
+                type="button"
+                role="tab"
+                aria-selected={activeEnergyView === view}
+                onClick={() => setActiveEnergyView(view)}
+                className={`min-h-11 rounded-xl px-4 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1866C1]/40 focus-visible:ring-offset-1 motion-reduce:transition-none ${
+                  activeEnergyView === view
+                    ? 'bg-[#eaf2ff] text-[#1455a0] shadow-sm dark:bg-[#172b49] dark:text-blue-300'
+                    : 'text-gray-600 hover:bg-slate-50 hover:text-[#1866C1] dark:text-gray-300 dark:hover:bg-slate-800'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={activeEnergyView === 'planning' && !isGuest ? 'hidden' : 'space-y-7'}>
 
         {/* SELECTOR HOY / MES / AÑO */}
 
@@ -1038,7 +1099,25 @@ export const Consumption = () => {
                           )}
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        aria-expanded={expandedDeviceId === device.id}
+                        aria-controls={`device-consumption-${device.id}`}
+                        onClick={() => setExpandedDeviceId((current) => current === device.id ? null : device.id)}
+                        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-[#1866C1] transition-colors duration-200 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1866C1]/40 motion-reduce:transition-none dark:border-gray-700 dark:text-blue-300 dark:hover:bg-slate-800"
+                      >
+                        {expandedDeviceId === device.id ? 'Ocultar detalle' : 'Ver detalle del periodo'}
+                        <span aria-hidden="true">{expandedDeviceId === device.id ? '−' : '+'}</span>
+                      </button>
                     </CardContent>
+                    {expandedDeviceId === device.id && homeId && (
+                      <DeviceConsumptionDetails
+                        homeId={homeId}
+                        deviceId={device.id}
+                        dateRange={dateRange}
+                        prefersReducedMotion={prefersReducedMotion}
+                      />
+                    )}
                   </Card>
                 ),
               )}
@@ -1047,9 +1126,149 @@ export const Consumption = () => {
 
         </section>}
 
+        </div>
+
+        {activeEnergyView === 'planning' && !isGuest && homeId && (
+          <HomeEnergySection
+            homeId={homeId}
+            month={energyMonth}
+            canManage={isHomeOwner}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 export default Consumption;
+
+const DeviceConsumptionDetails = ({
+  homeId,
+  deviceId,
+  dateRange,
+  prefersReducedMotion,
+}: {
+  homeId: string;
+  deviceId: string;
+  dateRange: DateRange;
+  prefersReducedMotion: boolean;
+}) => {
+  const requestId = useRef(0);
+  const [summary, setSummary] = useState<DeviceConsumptionSummary | null>(null);
+  const [daily, setDaily] = useState<DeviceDailyConsumption[]>([]);
+  const [readings, setReadings] = useState<ConsumptionReading[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadCount, setReloadCount] = useState(0);
+
+  useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    setIsLoading(true);
+    setSummary(null);
+    setDaily([]);
+    setReadings([]);
+    setError('');
+
+    void Promise.all([
+      getDeviceConsumptionSummary(homeId, deviceId, dateRange),
+      getDeviceDailyConsumption(homeId, deviceId, dateRange),
+      listDeviceConsumption(homeId, deviceId, { ...dateRange, limit: 100 }),
+    ]).then(([summaryResponse, dailyResponse, readingResponse]) => {
+      if (currentRequestId !== requestId.current) return;
+      setSummary(summaryResponse);
+      setDaily(dailyResponse);
+      setReadings(readingResponse);
+    }).catch((cause: unknown) => {
+      if (currentRequestId === requestId.current) {
+        setError(cause instanceof Error ? cause.message : 'No fue posible cargar el detalle del dispositivo.');
+      }
+    }).finally(() => {
+      if (currentRequestId === requestId.current) setIsLoading(false);
+    });
+
+    return () => { requestId.current += 1; };
+  }, [homeId, deviceId, dateRange, reloadCount]);
+
+  return (
+    <div id={`device-consumption-${deviceId}`} className="border-t border-slate-100 px-5 py-5 dark:border-gray-800 sm:px-6">
+      <h4 className="text-sm font-semibold text-[#1b254b] dark:text-white">Detalle del periodo seleccionado</h4>
+      {isLoading ? (
+        <p role="status" className="mt-3 text-sm text-gray-500 dark:text-gray-400">Cargando consumo del dispositivo...</p>
+      ) : error ? (
+        <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"><p>{error}</p><button type="button" onClick={() => setReloadCount((current) => current + 1)} className="mt-2 min-h-10 font-semibold underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">Reintentar</button></div>
+      ) : summary ? (
+        <div className="mt-4 space-y-5">
+          <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['Consumo del periodo', `${summary.totalEnergyDeltaKwh.toFixed(4)} kWh`],
+              ['Lecturas', String(summary.readingsCount)],
+              ['Energía acumulada reportada', summary.latestEnergyTotalKwh === null ? 'Sin datos' : `${summary.latestEnergyTotalKwh.toFixed(4)} kWh`],
+              ['Potencia promedio', summary.averagePowerW === null ? 'Sin datos' : `${summary.averagePowerW.toFixed(2)} W`],
+              ['Potencia máxima', summary.maxPowerW === null ? 'Sin datos' : `${summary.maxPowerW.toFixed(2)} W`],
+              ['Potencia mínima', summary.minPowerW === null ? 'Sin datos' : `${summary.minPowerW.toFixed(2)} W`],
+              ['Última lectura', summary.latestReadAt ? new Date(summary.latestReadAt).toLocaleString('es-CO') : 'Sin datos'],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-[#f5f8fc] p-3 dark:bg-slate-900/70">
+                <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</dt>
+                <dd className="mt-1 break-words text-sm font-bold text-[#1b254b] dark:text-white">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <section aria-labelledby={`device-daily-heading-${deviceId}`}>
+            <h5 id={`device-daily-heading-${deviceId}`} className="text-sm font-semibold text-[#1b254b] dark:text-white">Consumo diario</h5>
+            {daily.length === 0 ? (
+              <p className="mt-2 rounded-lg border border-dashed border-slate-200 p-4 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">No hay datos diarios para este periodo.</p>
+            ) : (
+              <div className="mt-3 h-52 w-full min-w-0" role="img" aria-label="Gráfico del consumo diario del dispositivo">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={daily.map((item) => {
+                    const [, month, day] = item.periodStart.slice(0, 10).split('-');
+                    return { day: `${day}/${month}`, kwh: item.totalEnergyDeltaKwh };
+                  })}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="day" tick={chartTickStyle} />
+                    <YAxis tick={chartTickStyle} width={52} />
+                    <Tooltip contentStyle={chartTooltipContentStyle} labelStyle={chartTooltipLabelStyle} itemStyle={chartTooltipItemStyle} />
+                    <Bar dataKey="kwh" name="kWh" fill="#1866C1" radius={[5, 5, 0, 0]} isAnimationActive={!prefersReducedMotion} animationDuration={220} animationEasing="ease-out" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+
+          <section aria-labelledby={`device-readings-heading-${deviceId}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h5 id={`device-readings-heading-${deviceId}`} className="text-sm font-semibold text-[#1b254b] dark:text-white">Lecturas del dispositivo</h5>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Se muestran hasta 100 lecturas más recientes.</p>
+            </div>
+            {readings.length === 0 ? (
+              <p className="mt-2 rounded-lg border border-dashed border-slate-200 p-4 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">No hay lecturas registradas en este periodo.</p>
+            ) : (
+              <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-slate-200 dark:border-gray-700">
+                <table className="w-full min-w-[760px] border-collapse text-left text-xs">
+                  <thead className="sticky top-0 bg-[#f5f8fc] text-gray-600 dark:bg-slate-900 dark:text-gray-300">
+                    <tr>{['Fecha', 'Potencia', 'Energía', 'Voltaje', 'Corriente', 'Frecuencia', 'Temperatura'].map((label) => <th key={label} scope="col" className="px-3 py-2.5 font-semibold">{label}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+                    {readings.map((reading) => (
+                      <tr key={reading.id} className="text-[#334155] dark:text-slate-200">
+                        <td className="whitespace-nowrap px-3 py-2.5">{new Date(reading.readAt).toLocaleString('es-CO')}</td>
+                        <td className="px-3 py-2.5">{reading.powerW.toFixed(2)} W</td>
+                        <td className="px-3 py-2.5">{reading.energyDeltaKwh.toFixed(4)} kWh</td>
+                        <td className="px-3 py-2.5">{reading.voltageV === null ? '—' : `${reading.voltageV} V`}</td>
+                        <td className="px-3 py-2.5">{reading.currentA === null ? '—' : `${reading.currentA} A`}</td>
+                        <td className="px-3 py-2.5">{reading.frequencyHz === null ? '—' : `${reading.frequencyHz} Hz`}</td>
+                        <td className="px-3 py-2.5">{reading.temperatureC === null ? '—' : `${reading.temperatureC} °C`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
+    </div>
+  );
+};

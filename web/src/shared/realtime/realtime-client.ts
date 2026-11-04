@@ -27,10 +27,20 @@ export const getRealtimeSocket = () => {
       reconnection: true,
     });
 
-    socket.on('connect_error', (error) => {
-      console.warn('Realtime: error de conexión.', error.message);
+    let hasReportedConnectionError = false;
+
+    socket.on('connect', () => {
+      hasReportedConnectionError = false;
     });
 
+    socket.on('connect_error', (error) => {
+      if (hasReportedConnectionError) return;
+      hasReportedConnectionError = true;
+
+      // Keep one useful diagnostic per failed connection streak without flooding the console.
+      // eslint-disable-next-line no-console
+      console.warn('Realtime: error de conexiÃ³n.', error.message);
+    });
     socket.io.on('reconnect_attempt', () => {
       if (!getCurrentToken()) {
         socket?.disconnect();

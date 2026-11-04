@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   acceptInvitation,
   listInvitations,
@@ -8,7 +7,6 @@ import {
 } from '../../../shared/api/homes.api';
 
 export const InvitationsPage = () => {
-  const navigate = useNavigate();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [busyInvitationId, setBusyInvitationId] = useState<string | null>(null);
@@ -85,19 +83,6 @@ export const InvitationsPage = () => {
           </p>
         </header>
 
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/access')}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d6efd] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#0b5ed7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d6efd]/35 focus-visible:ring-offset-2 motion-reduce:transition-none"
-          >
-            Invitar a una persona
-          </button>
-          <p className="text-sm text-[#64748b] dark:text-slate-400">
-            Para enviar invitaciones y administrar accesos, ve a Accesos del hogar.
-          </p>
-        </div>
-
         {error && (
           <div
             role="alert"
@@ -160,9 +145,8 @@ export const InvitationsPage = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="10" cy="7" r="4" />
-                <path d="M20 8v6m3-3h-6" />
+                <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+                <path d="m4.5 7 7.5 5.5L19.5 7" />
               </svg>
             </span>
             <h2 className="mt-5 text-lg font-bold tracking-tight text-[#0f172a] dark:text-white sm:text-xl">

@@ -303,18 +303,22 @@ export const AccountPage = () => {
           <InfoRow label="Correo electrónico" value={profileEmail} />
           <InfoRow label="Rol" value={user?.role || 'No disponible'} />
           <div className="border-t border-[#edf1f5] pt-4 dark:border-slate-700">
-            <h2 className="text-sm font-semibold text-red-700 dark:text-red-300">Desactivar cuenta</h2>
-            <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
-              La desactivación cerrará tu sesión. Puedes pedir un enlace por correo para reactivar tu cuenta.
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleDeactivateAccount()}
-              disabled={isDeactivating}
-              className="mt-3 min-h-11 rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/35 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
-            >
-              {isDeactivating ? 'Desactivando…' : 'Desactivar cuenta'}
-            </button>
+            <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/60 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5 dark:border-red-900/50 dark:bg-red-950/20">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-red-800 dark:text-red-300">Desactivar cuenta</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-5 text-[#64748b] dark:text-slate-400">
+                  La desactivación cerrará tu sesión. Puedes pedir un enlace por correo para reactivar tu cuenta.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleDeactivateAccount()}
+                disabled={isDeactivating}
+                className="min-h-11 w-full shrink-0 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition-colors duration-200 hover:border-red-400 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/35 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none sm:w-auto dark:border-red-800 dark:bg-slate-950/30 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                {isDeactivating ? 'Desactivando…' : 'Desactivar cuenta'}
+              </button>
+            </div>
           </div>
         </section>
       </div>

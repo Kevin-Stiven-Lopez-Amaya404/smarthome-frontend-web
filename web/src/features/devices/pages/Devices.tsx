@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -11,8 +12,10 @@ import {
 } from 'react-router-dom';
 
 import {
+  activateDevice,
   controlDevice,
   listDevices,
+  listInactiveDevices,
   type Device,
 } from '../../../shared/api/devices.api';
 
@@ -82,6 +85,12 @@ export const Devices = () => {
   ] =
     useState<Device[]>([]);
 
+  const [inactiveDevices, setInactiveDevices] = useState<Device[]>([]);
+  const [isLoadingInactive, setIsLoadingInactive] = useState(false);
+  const [inactiveError, setInactiveError] = useState('');
+  const [pendingDeviceActionId, setPendingDeviceActionId] = useState<string | null>(null);
+  const devicesRequestId = useRef(0);
+
   const [
     search,
     setSearch,
@@ -112,6 +121,8 @@ export const Devices = () => {
   const loadDevicesPage =
     useCallback(
       async () => {
+        const requestId = ++devicesRequestId.current;
+        const isCurrentRequest = () => requestId === devicesRequestId.current;
         setCurrentMembership(null);
 
         if (!homeId) {
@@ -131,6 +142,9 @@ export const Devices = () => {
         );
 
         setError('');
+        setInactiveError('');
+        setInactiveDevices([]);
+        setIsLoadingInactive(false);
 
         try {
           const [
@@ -147,6 +161,8 @@ export const Devices = () => {
               ),
             ]);
 
+          if (!isCurrentRequest()) return;
+
           setHome(
             homeResponse,
           );
@@ -157,6 +173,8 @@ export const Devices = () => {
 
           try {
             const membersResponse = await listMembers(homeId);
+            if (!isCurrentRequest()) return;
+
             const membership = membersResponse.find(
               (member) =>
                 member.homeId === homeId &&
@@ -165,6 +183,22 @@ export const Devices = () => {
             ) ?? null;
 
             setCurrentMembership(membership);
+
+            if (membership?.role === 'OWNER') {
+              setIsLoadingInactive(true);
+              try {
+                const inactiveResponse = await listInactiveDevices(homeId);
+                if (isCurrentRequest()) setInactiveDevices(inactiveResponse);
+              } catch (cause) {
+                if (isCurrentRequest()) {
+                  setInactiveError(cause instanceof Error ? cause.message : 'No fue posible cargar los dispositivos inactivos.');
+                }
+              } finally {
+                if (isCurrentRequest()) setIsLoadingInactive(false);
+              }
+            } else {
+              setInactiveDevices([]);
+            }
 
             if (!membership) {
               setError(
@@ -178,20 +212,20 @@ export const Devices = () => {
             );
           }
 
-          localStorage.setItem(
-            'activeHomeId',
-            homeId,
-          );
+          try {
+            localStorage.setItem('activeHomeId', homeId);
+          } catch {
+            // The route remains authoritative when browser storage is unavailable.
+          }
         } catch (cause) {
+          if (!isCurrentRequest()) return;
           setError(
             cause instanceof Error
               ? cause.message
               : 'No fue posible cargar los dispositivos.',
           );
         } finally {
-          setIsLoading(
-            false,
-          );
+          if (isCurrentRequest()) setIsLoading(false);
         }
       },
       [homeId, user?.id],
@@ -202,6 +236,9 @@ export const Devices = () => {
    */
   useEffect(() => {
     void loadDevicesPage();
+    return () => {
+      devicesRequestId.current += 1;
+    };
   }, [loadDevicesPage]);
 
   /*
@@ -218,25 +255,14 @@ export const Devices = () => {
       return;
     }
 
-    const handleConnected = (
-      payload: {
-        userId: string;
-      },
-    ) => {
-      console.log(
-        'Realtime conectado:',
-        payload,
-      );
-    };
-
     const handleRealtimeError = (
       payload: {
         message: string;
       },
     ) => {
-      console.error(
-        'Realtime error:',
-        payload,
+      setError(
+        payload.message ||
+          'La conexión en tiempo real tuvo un problema. Los cambios podrían tardar en reflejarse.',
       );
     };
 
@@ -280,11 +306,6 @@ export const Devices = () => {
     };
 
     socket.on(
-      'realtime.connected',
-      handleConnected,
-    );
-
-    socket.on(
       'realtime.error',
       handleRealtimeError,
     );
@@ -295,11 +316,6 @@ export const Devices = () => {
     );
 
     return () => {
-      socket.off(
-        'realtime.connected',
-        handleConnected,
-      );
-
       socket.off(
         'realtime.error',
         handleRealtimeError,
@@ -409,6 +425,20 @@ export const Devices = () => {
         next.delete(device.id);
         return next;
       });
+    }
+  };
+
+  const handleActivateDevice = async (device: Device) => {
+    if (!homeId || !isOwner || pendingDeviceActionId) return;
+    setPendingDeviceActionId(device.id);
+    setInactiveError('');
+    try {
+      await activateDevice(homeId, device.id);
+      await loadDevicesPage();
+    } catch (cause) {
+      setInactiveError(cause instanceof Error ? cause.message : 'No fue posible reactivar el dispositivo.');
+    } finally {
+      setPendingDeviceActionId(null);
     }
   };
 
@@ -773,6 +803,37 @@ export const Devices = () => {
           )}
 
         </section>
+
+        {isOwner && (
+          <section className="space-y-4" aria-labelledby="inactive-devices-heading">
+            <div>
+              <h2 id="inactive-devices-heading" className="text-lg font-bold tracking-tight text-[#1b254b] dark:text-white sm:text-xl">Dispositivos inactivos</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Puedes reactivar un dispositivo del hogar.</p>
+            </div>
+            {inactiveError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">{inactiveError}<button type="button" className="ml-3 min-h-11 font-semibold underline underline-offset-4" onClick={() => void loadDevicesPage()}>Reintentar</button></div>}
+            {isLoadingInactive ? (
+              <div role="status" className="rounded-2xl border border-slate-200/80 bg-white p-6 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#151824] dark:text-gray-400">Cargando dispositivos inactivos...</div>
+            ) : inactiveDevices.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-gray-500 dark:border-gray-700 dark:bg-[#151824] dark:text-gray-400">No hay dispositivos inactivos en este hogar.</div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {inactiveDevices.map((device) => (
+                  <Card key={device.id} className="rounded-2xl border border-slate-200/80 shadow-sm dark:border-gray-800">
+                    <CardContent className="space-y-4 p-5 sm:p-6">
+                      <div className="min-w-0">
+                        <h3 className="break-words font-semibold text-[#1b254b] dark:text-white">{device.name}</h3>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Registro inactivo · {device.connectivityStatus}</p>
+                      </div>
+                      <Button type="button" variant="primary" className="w-full" disabled={pendingDeviceActionId !== null} onClick={() => void handleActivateDevice(device)}>
+                        {pendingDeviceActionId === device.id ? 'Reactivando...' : 'Reactivar dispositivo'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
       </div>
 

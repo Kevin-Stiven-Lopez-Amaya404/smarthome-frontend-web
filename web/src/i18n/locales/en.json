@@ -118,7 +118,37 @@
     "alertThreshold": "Alert Threshold",
     "save": "Save",
     "cancel": "Cancel",
-    "description": "Ajustes de la cuenta y preferencias"
+    "description": "Personalize your Smart Home experience and manage your account.",
+    "profile": "Profile",
+    "appearance": "Appearance",
+    "appearanceDescription": "Choose the app's visual theme.",
+    "system": "System",
+    "securityDescription": "Protect your account and manage access.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "passwordRules": "Use at least 8 characters, one uppercase letter, one number, and one symbol. Changing it will sign you out of your sessions.",
+    "updating": "Updating…",
+    "logoutAll": "Sign out",
+    "logoutAllDescription": "Sign out of all your devices.",
+    "informationDescription": "Application details.",
+    "installedVersion": "Installed version",
+    "support": "Support",
+    "contact": "Contact",
+    "tabs": {
+      "label": "Settings sections",
+      "general": "General",
+      "security": "Security",
+      "information": "Information"
+    },
+    "errors": {
+      "applyLanguage": "The selected language could not be applied.",
+      "loadPreferences": "Your preferences could not be loaded from the server.",
+      "saveTheme": "The theme was applied on this device, but could not be saved to your account.",
+      "saveLanguage": "The language was applied on this device, but could not be saved to your account.",
+      "changePassword": "The password could not be changed. Please try again."
+    }
   },
   "profile": {
     "title": "My Profile",

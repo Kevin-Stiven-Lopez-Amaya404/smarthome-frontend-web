@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import HomeIcon from '@mui/icons-material/HomeOutlined';
+import DeviceIcon from '@mui/icons-material/DevicesOtherOutlined';
+import AlertIcon from '@mui/icons-material/WarningAmberOutlined';
+import FavoriteIcon from '@mui/icons-material/StarBorderOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRightOutlined';
+import ArrowRightIcon from '@mui/icons-material/ArrowForwardOutlined';
 
 import { useAuth } from '../../../app/contexts/AuthContext';
 import { listHomes, type Home } from '../../../shared/api/homes.api';
@@ -10,98 +16,6 @@ interface HomeSummary {
   deviceCount: number | null;
   deviceError: string | null;
 }
-
-const HomeIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="1.8"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-6h6v6"
-    />
-  </svg>
-);
-
-const DeviceIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="1.8"
-  >
-    <rect width="15" height="18" x="4.5" y="3" rx="2" />
-    <path strokeLinecap="round" d="M9 6.5h6M10 17.5h4" />
-  </svg>
-);
-
-const AlertIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="1.8"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M10.3 3.9 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
-    />
-    <path strokeLinecap="round" d="M12 9v4m0 4h.01" />
-  </svg>
-);
-
-const FavoriteIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="1.8"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"
-    />
-  </svg>
-);
-
-const ChevronRightIcon = () => (
-  <svg
-    aria-hidden="true"
-    className="h-4 w-4"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg
-    aria-hidden="true"
-    className="h-5 w-5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-6-6 6 6-6 6" />
-  </svg>
-);
 
 export const DashboardPage = () => {
   const navigate = useNavigate();

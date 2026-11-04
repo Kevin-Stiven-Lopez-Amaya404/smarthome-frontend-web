@@ -107,9 +107,29 @@ export const provisionShellyDevice = (
   );
 
 export type ShellyPairingStatus = 'PENDING' | 'DEVICE_IDENTIFIED' | 'WAITING_FOR_MQTT' | 'CONNECTED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED' | 'FAILED';
-export interface ShellySetupCapabilities { preferredMethod: 'AP' | 'BLE'; compatibleModels: Array<{ modelCode: string; generation: number; firmwareCompatibility: string }>; methods: { AP: { sessionCoordination: string; deviceConfiguration: string; physicalValidation: string; localRpcBaseUrl: string }; BLE: { sessionCoordination: string; reason?: string } }; brokerCredentialProvisioning: { status: string; reason: string }; pairingCompletion: string; completionRequires: string }
-export interface ShellyPairingSession { sessionId: string; homeId: string; method: 'AP' | 'BLE'; status: ShellyPairingStatus; expiresAt: string; identity: { manufacturerDeviceId: string; modelCode: string; generation: number; firmwareVersion: string | null; reportedAt: string; verification: string } | null; completion: { deviceId?: string; ready?: boolean; code?: string; message?: string } | null; failureCode: string | null }
-export interface CreateShellyPairingSessionPayload { requestId: string; sessionToken: string; method: 'AP' | 'BLE' }
+export type ShellyPairingMethod = 'LAN' | 'AP';
+export interface ShellySetupCapabilities {
+  preferredMethod: ShellyPairingMethod | null;
+  pairingAvailability: 'READY' | 'BLOCKED';
+  networkRequirements: Record<ShellyPairingMethod, string>;
+  compatibleModels: Array<{ modelCode: string; generation: number; firmwareCompatibility: string }>;
+  methods: {
+    AP: { sessionCoordination: string; deviceConfiguration: string; physicalValidation: string; localRpcBaseUrl: string };
+    LAN: { sessionCoordination: string; deviceConfiguration: string; physicalValidation: string; localRpcBaseUrl: string };
+    BLE: { sessionCoordination: string; reason: string };
+  };
+  brokerCredentialProvisioning: {
+    status: string;
+    profile: string;
+    authenticatedConnectionObservation: string;
+    defaultDeny: boolean | null;
+    reason: string | null;
+  };
+  pairingCompletion: string;
+  completionRequires: string;
+}
+export interface ShellyPairingSession { sessionId: string; homeId: string; method: ShellyPairingMethod; status: ShellyPairingStatus; expiresAt: string; identity: { manufacturerDeviceId: string; modelCode: string; generation: number; firmwareVersion: string | null; reportedAt: string; verification: string } | null; completion: { deviceId?: string; ready?: boolean; code?: string; message?: string } | null; failureCode: string | null }
+export interface CreateShellyPairingSessionPayload { requestId: string; sessionToken: string; method: ShellyPairingMethod }
 export interface ReportShellyPairingIdentityPayload { manufacturerDeviceId: string; modelCode: string; generation: number; firmwareVersion?: string }
 const pairingPath = buildShellyPairingSessionPath;
 export const getShellySetupCapabilities = (homeId: string) => apiClient<ShellySetupCapabilities>(buildShellySetupCapabilitiesPath(homeId));

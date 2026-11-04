@@ -118,7 +118,37 @@
     "alertThreshold": "Warnschwelle",
     "save": "Speichern",
     "cancel": "Abbrechen",
-    "description": "Ajustes de la cuenta y preferencias"
+    "description": "Passen Sie Ihr Smart Home Erlebnis an und verwalten Sie Ihr Konto.",
+    "profile": "Profil",
+    "appearance": "Darstellung",
+    "appearanceDescription": "Wählen Sie das visuelle Design der App.",
+    "system": "System",
+    "securityDescription": "Schützen Sie Ihr Konto und verwalten Sie den Zugriff.",
+    "changePassword": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "passwordRules": "Verwenden Sie mindestens 8 Zeichen, einen Großbuchstaben, eine Zahl und ein Symbol. Beim Ändern werden Ihre Sitzungen beendet.",
+    "updating": "Wird aktualisiert…",
+    "logoutAll": "Abmelden",
+    "logoutAllDescription": "Melden Sie sich auf allen Geräten ab.",
+    "informationDescription": "Anwendungsdetails.",
+    "installedVersion": "Installierte Version",
+    "support": "Support",
+    "contact": "Kontaktieren",
+    "tabs": {
+      "label": "Einstellungsbereiche",
+      "general": "Allgemein",
+      "security": "Sicherheit",
+      "information": "Informationen"
+    },
+    "errors": {
+      "applyLanguage": "Die ausgewählte Sprache konnte nicht angewendet werden.",
+      "loadPreferences": "Ihre Einstellungen konnten nicht vom Server geladen werden.",
+      "saveTheme": "Das Design wurde auf diesem Gerät angewendet, konnte aber nicht in Ihrem Konto gespeichert werden.",
+      "saveLanguage": "Die Sprache wurde auf diesem Gerät angewendet, konnte aber nicht in Ihrem Konto gespeichert werden.",
+      "changePassword": "Das Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut."
+    }
   },
   "profile": {
     "title": "Mein Profil",

@@ -234,7 +234,7 @@ export const AddDevicePage = () => {
             <Card
               key={method.destination}
               noPadding
-              className={'group h-full overflow-hidden rounded-[22px] border border-[#e1ebf7] bg-white shadow-[0_10px_30px_rgba(32,92,151,0.07)] transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#cbdff5] hover:shadow-[0_14px_34px_rgba(32,92,151,0.11)] motion-reduce:transform-none motion-reduce:transition-none dark:border-slate-700 dark:bg-[#111b2c] dark:shadow-black/20' + (method.recommended ? ' ring-1 ring-[#d9eaff]' : '')}
+              className={'group h-full overflow-hidden rounded-[22px] border border-[#e1ebf7] bg-white shadow-[0_10px_30px_rgba(32,92,151,0.07)] transition-[border-color,box-shadow] duration-200 ease-out hover:border-[#cbdff5] hover:shadow-[0_14px_34px_rgba(32,92,151,0.11)] motion-reduce:transition-none dark:border-slate-700 dark:bg-[#111b2c] dark:shadow-black/20' + (method.recommended ? ' ring-1 ring-[#d9eaff]' : '')}
             >
               <CardContent className="h-full p-6 sm:p-7">
                 <div className="flex h-full min-h-[440px] flex-col sh-animate-fade-in-up sm:min-h-[500px]" style={{ animationDelay: String(index * 65) + 'ms' }}>
