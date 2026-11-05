@@ -1,10 +1,10 @@
-name: CI and deploy dev
+name: CI validate and publish main
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, qa, main]
   pull_request:
-    branches: [dev, main]
+    branches: [dev, qa, main]
 
 permissions:
   contents: read
@@ -14,6 +14,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-policy:
+    name: Enforce dev to qa to main
+    if: ${{ github.event_name == 'pull_request' && (github.base_ref == 'qa' || github.base_ref == 'main') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release promotion PR
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" != "$TARGET_REPO" ]; then
+            echo "Release PR must originate in this repository."
+            exit 1
+          fi
+          if [ "$PR_BASE" = qa ] && [ "$PR_HEAD" = dev ]; then
+            echo "Allowed promotion dev -> qa"
+          elif [ "$PR_BASE" = main ] && [ "$PR_HEAD" = qa ]; then
+            echo "Allowed promotion qa -> main"
+          else
+            echo "Forbidden promotion: ${PR_HEAD} -> ${PR_BASE} (require dev -> qa -> main)"
+            exit 1
+          fi
+
   validate:
     runs-on: ubuntu-latest
     defaults:
@@ -59,7 +85,7 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:18080/dashboard --output /dev/null
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && github.repository == 'nataliachala1/smarthome-frontend-web'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'nataliachala1/smarthome-frontend-web'
     needs: validate
     runs-on: ubuntu-latest
     permissions:
@@ -79,11 +105,11 @@ jobs:
           file: ./web/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/smarthome-frontend-web:dev
+            ghcr.io/${{ github.repository_owner }}/smarthome-frontend-web:main
             ghcr.io/${{ github.repository_owner }}/smarthome-frontend-web:${{ github.sha }}
 
   deploy:
-    if: ${{ false }} # Enable only after the VPS backup and restore audit is complete.
+    if: ${{ false }} # Disabled: enable only after QA approval, backup/restore evidence and production environment review.
     needs: publish
     runs-on: ubuntu-latest
     steps:
