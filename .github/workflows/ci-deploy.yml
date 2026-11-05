@@ -59,7 +59,7 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:18080/dashboard --output /dev/null
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && github.repository == 'nataliachala1/smarthome-frontend-web'
     needs: validate
     runs-on: ubuntu-latest
     permissions:
