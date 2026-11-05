@@ -70,3 +70,12 @@ Frontend validation commands:
     npm run build
 
 Local .env files are excluded from Git and must not be committed.
+
+## Documentación del proyecto
+
+La documentación técnica y los informes históricos están centralizados en [`smart-home-doc`](https://github.com/Kevin-Stiven-Lopez-Amaya404/smart-home-doc):
+
+- [Arquitectura del frontend web](https://github.com/Kevin-Stiven-Lopez-Amaya404/smart-home-doc/blob/main/docs/10-arquitectura/frontend-web.md).
+- [Archivo histórico del frontend web](https://github.com/Kevin-Stiven-Lopez-Amaya404/smart-home-doc/tree/main/docs/99-archivo/frontend-web).
+
+Los tres informes históricos de auditoría y propuesta de refactorización se archivaron con sus hashes Git originales antes de retirarlos de este repositorio. Las guías de ejecución en este README y en [`web/README.md`](web/README.md) permanecen junto al código.
